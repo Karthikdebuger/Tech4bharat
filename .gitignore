@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Problem statement PDFs (not part of solution)
+tech4Bbharat/*.pdf
+
+# Extracted text (temporary)
+all_ps_extracted.txt
+
+# Old draft specs (kept locally, not in repo)
+gold_trust_ai_integrated_engineering_design.md
+Applied AI Gold Trust Solution.md

@@ -74,11 +74,11 @@ All physical and financial quantities are calculated strictly with half-up integ
 
 $$W_{\text{fine}} = W_{\text{net}} \times P_{\text{fineness}}$$
 
-$$W_{\text{payable}} = \operatorname{RoundHalfUp}\left(W_{\text{fine}} \times (10{,}000 - D_{\text{bp}}),\, 10{,}000\right)$$
+$$W_{\text{payable}} = \mathrm{RoundHalfUp}\left(W_{\text{fine}} \times (10{,}000 - D_{\text{bp}}),\, 10{,}000\right)$$
 
-$$V_{\text{paise}} = \operatorname{RoundHalfUp}\left(W_{\text{payable}} \times R_{\text{rate}},\, 1{,}000{,}000\right)$$
+$$V_{\text{paise}} = \mathrm{RoundHalfUp}\left(W_{\text{payable}} \times R_{\text{rate}},\, 1{,}000{,}000\right)$$
 
-$$\operatorname{RoundHalfUp}(n, d) = \left\lfloor \frac{2n + d}{2d} \right\rfloor$$
+$$\mathrm{RoundHalfUp}(n, d) = \left\lfloor \frac{2n + d}{2d} \right\rfloor$$
 
 ```python
 # Pure domain implementation (backend/app/domain/valuation.py)

@@ -70,15 +70,25 @@ flowchart TD
 
 ## 3. Mathematical Specification & Worked Example
 
-All physical and financial quantities are calculated strictly with half-up integer arithmetic:
+All physical and financial quantities are calculated strictly with half-up integer arithmetic without floating-point representation:
 
-$$\text{div\_round\_half\_up}(n, d) = \left\lfloor \frac{2n + d}{2d} \right\rfloor$$
+$$W_{\text{fine}} = W_{\text{net}} \times P_{\text{fineness}}$$
 
-$$\text{fine\_gold\_ug} = \text{net\_mg} \times \text{fineness\_permille}$$
+$$W_{\text{payable}} = \operatorname{RoundHalfUp}\left(W_{\text{fine}} \times (10{,}000 - D_{\text{bp}}),\, 10{,}000\right)$$
 
-$$\text{payable\_gold\_ug} = \text{div\_round\_half\_up}\left(\text{fine\_gold\_ug} \times (10,000 - \text{deduction\_bp}),\ 10,000\right)$$
+$$V_{\text{paise}} = \operatorname{RoundHalfUp}\left(W_{\text{payable}} \times R_{\text{rate}},\, 1{,}000{,}000\right)$$
 
-$$\text{value\_paise} = \text{div\_round\_half\_up}\left(\text{payable\_gold\_ug} \times \text{rate\_paise\_per\_g},\ 1,000,000\right)$$
+$$\operatorname{RoundHalfUp}(n, d) = \left\lfloor \frac{2n + d}{2d} \right\rfloor$$
+
+```python
+# Pure domain implementation (backend/app/domain/valuation.py)
+def div_round_half_up(n: int, d: int) -> int:
+    return (2 * n + d) // (2 * d)
+
+fine_gold_ug = net_mg * fineness_permille
+payable_gold_ug = div_round_half_up(fine_gold_ug * (10_000 - deduction_bp), 10_000)
+value_paise = div_round_half_up(payable_gold_ug * rate_paise_per_g, 1_000_000)
+```
 
 ### Specification Worked Example
 

@@ -1,327 +1,247 @@
-<div align="center">
+# Gold Trust AI: Cryptographic Trust Architecture for Jewellery Exchanges
 
-# 🏆 GOLD TRUST AI
-
-### A Two-Party Evidence, Valuation & Trust Platform for India's Jewellery Ecosystem
-
-[![Tech4Bharat](https://img.shields.io/badge/Hackathon-Tech4Bharat_GAV_Summit-orange?style=for-the-badge)](https://tech4bharat.org)
-[![Theme](https://img.shields.io/badge/Theme-Jeweltech_|_Applied_AI-gold?style=for-the-badge)]()
-[![PS](https://img.shields.io/badge/Problem_Statement-PS_2.1-blue?style=for-the-badge)]()
-[![Status](https://img.shields.io/badge/Status-MVP_In_Progress-brightgreen?style=for-the-badge)]()
-
----
-
-*Gold Trust AI does not ask customers to trust an AI verdict.*  
-*It gives customers and jewellers the same evidence, the same calculation,*  
-*the same approved receipt — and a record they can verify later.*
+[![CI Test Suite](https://img.shields.io/badge/tests-43%20passed-brightgreen.svg?style=flat-square)](backend/tests/)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg?style=flat-square)](backend/pyproject.toml)
+[![Strict Typing](https://img.shields.io/badge/mypy-strict%20clean-blueviolet.svg?style=flat-square)](backend/pyproject.toml)
+[![Architecture Contracts](https://img.shields.io/badge/import--linter-contracts%20kept-success.svg?style=flat-square)](backend/.importlinter)
+[![Canonical JSON](https://img.shields.io/badge/canonicalization-RFC%208785%20JCS-orange.svg?style=flat-square)](backend/app/core/canonical.py)
+[![Database](https://img.shields.io/badge/database-PostgreSQL%2016%20RLS-blue.svg?style=flat-square)](deploy/compose.yml)
+[![Zero Floats](https://img.shields.io/badge/domain-0%20floats%20(AST%20enforced)-green.svg?style=flat-square)](backend/tests/unit/test_no_floats.py)
 
 ---
 
-</div>
+## 1. Problem Statement & System Overview
 
-## 📌 Table of Contents
+In the Indian gold jewellery ecosystem, over **100,000+ daily exchange and appraisal transactions** occur over retail counters. Customers surrender old jewellery for exchange or cash. Today, this process suffers from a fundamental **structural information asymmetry**:
+1. **Unverifiable Scale Deductions**: Dirt, enamel, and stone weight tare are estimated informally by counter staff without independent corroboration.
+2. **Hidden Refining & Melting Spreads**: Discretionary deductions ($1\% \dots 5\%$) are silently subtracted from gross weights or applied to non-transparent purity estimates.
+3. **Floating-Point Drift & Accounting Omission**: Point-of-sale ERPs use IEEE-754 floating-point arithmetic, introducing non-deterministic rounding and silent inventory reconciliation adjustments.
+4. **Paper Receipt Ephemerality**: Physical receipts can be altered or repudiated without audit trails.
 
-- [About the Project](#-about-the-project)
-- [The Problem](#-the-problem)
-- [Our Solution](#-our-solution)
-- [Core Engines](#-core-engines)
-- [How AI Is Used — Honestly](#-how-ai-is-used--honestly)
-- [Consumer Features](#-consumer-features)
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Product Principles](#-product-principles)
-- [What Makes This Different](#-what-makes-this-different)
-- [Business Model](#-business-model)
-- [Project Status](#-project-status)
-- [Getting Started](#-getting-started)
-- [Team](#-team)
+**Gold Trust AI** eliminates this asymmetry through a verifiable, hardware-agnostic cryptographic trust architecture:
+- **Blind Customer Weight Witness (Rule E11)**: Anti-bias protocol where the customer reads the scale display and records it on a second screen before staff values are revealed.
+- **Strict Integer-Only Physical & Currency Units**: Units are stored and calculated strictly as signed 64-bit integers (`µg`, `mg`, `paise`, `bp`, `permille`). Zero floating-point arithmetic is enforced across the entire domain via AST static analysis.
+- **Balanced Dual-Entry Ledgers**: Physical gold inventory in micrograms (`µg`) and financial currency in paise (`Paise`) are kept in separate balanced journals, with balance enforced at commit time via PostgreSQL deferred constraint triggers.
+- **RFC 8785 Canonical JSON & SHA-256 Hash Chaining**: Every appraisal produces an immutable digital receipt that can be independently audited offline using the standalone `gtverify` CLI.
 
 ---
 
-## 📖 About the Project
+## 2. System Architecture
 
-**Gold Trust AI** is a transaction evidence and integrity platform built for India's jewellery ecosystem. It addresses the trust gap that exists on both sides of a gold transaction — the customer who cannot verify how the final amount was calculated, and the jeweller who cannot prove the process was fair and traceable.
+```mermaid
+flowchart TD
+    subgraph Client ["Client Presentation Layer"]
+        CW["Counter Appraiser Wizard (React + TS)"]
+        CS["Customer Witness & Consent Screen (Bilingual)"]
+        PV["Public Verifier Portal (/verify/:hash)"]
+    end
 
-The platform captures instrument readings, bill data, and hallmark (HUID) records, validates them for cross-evidence consistency using deterministic rules, computes transparent valuations using integer arithmetic, and produces a single co-signed receipt that both parties can independently verify.
+    subgraph API ["FastAPI Modular Monolith"]
+        EP["Sync HTTP Endpoints & RFC 9457 Errors"]
+        AUTH["Argon2id + TOTP + TenantContext"]
+        BLOB["Content-Addressed Blob Store (Pillow Sanitized)"]
+    end
 
-> **Hackathon:** Tech4Bharat — GAV Summit Grand Finale, December 2026, Bangalore Palace  
-> **Problem Statement:** PS 2.1 — Gold Purity Verification  
-> **Theme:** Jeweltech — Applied AI Systems  
-> **Team Size:** 4 Members  
-> **Build Horizon:** 6 Weeks
+    subgraph Domain ["Pure Domain Engine (Zero I/O, Zero Floats)"]
+        VAL["Valuation Engine (quote_point)"]
+        SM["10-State Machine & Transition Guards"]
+        RULES["Integrity Protocol (Rules E01-E13)"]
+        JCS["RFC 8785 Canonical JSON & SHA-256 Chain"]
+        LP["Dual-Entry Posting Planner (plan_postings)"]
+    end
 
----
+    subgraph DB ["PostgreSQL 16 Database Layer"]
+        RLS["Row-Level Security (Tenant Isolation)"]
+        TRIG1["Append-Only Mutation Trigger (forbid_mutation)"]
+        TRIG2["Gold Journal Balance Trigger (DEFERRED)"]
+        TRIG3["Money Journal Balance Trigger (DEFERRED)"]
+    end
 
-## 🔍 The Problem
-
-Gold is one of the most significant household assets in India:
-
-| Metric | Value |
-|--------|-------|
-| Household gold reserves | 25,000 – 34,600 tonnes |
-| Estimated value | $3.8 – 5 trillion |
-| Women's share of private gold | ~80 – 85% |
-| Rural India's share of annual gold demand | ~55 – 60% |
-
-For many families, a single gold transaction represents months of savings. Yet most jewellery transactions remain **opaque** to the customer.
-
-### Customer-Side Problem
-
-When someone buys a gold necklace or exchanges an old bangle, they typically see a weight, a purity label like "22K," a gold rate, a making charge or deduction, and a final amount. But they **cannot independently verify:**
-
-- Whether the weight on the bill matches what was actually measured on the scale.
-- Whether the declared purity is consistent with the hallmark record (HUID).
-- What gold rate was applied and whether it reflects the market rate for the day.
-- How the making charge or deduction compares to what other shops charge.
-- Whether the receipt can be trusted later — for insurance, resale, or a gold loan.
-
-### Jeweller-Side Problem
-
-Honest small jewellers face a parallel documentation gap. Their instrument readings, rate references, deduction policies, customer approvals, and stock movements are spread across paper registers, billing software, and verbal explanations. When a customer disputes a transaction or a regulatory check occurs, the jeweller has **no structured way to prove the process was fair and traceable.**
-
----
-
-## 💡 Our Solution
-
-Gold Trust AI is **not** a gold-testing device, **not** a photo-based purity classifier, and **not** a simple billing app.
-
-It is an **evidence and transaction integrity platform** that follows an evidence-first workflow:
-
-```
-Capture → Validate → Calculate → Explain → Co-sign → Settle → Reconcile → Share / Verify
+    CW --> EP
+    CS --> EP
+    PV --> EP
+    EP --> AUTH
+    EP --> Domain
+    Domain --> DB
+    EP --> BLOB
 ```
 
-The platform starts with a focused MVP workflow: **old-gold exchange at a participating jeweller's counter** — which brings together weight, purity evidence, rate, deductions, customer approval, settlement, and inventory movement in one transaction.
+---
+
+## 3. Mathematical Specification & Worked Example
+
+All physical and financial quantities are calculated strictly with half-up integer arithmetic:
+
+$$\text{div\_round\_half\_up}(n, d) = \left\lfloor \frac{2n + d}{2d} \right\rfloor$$
+
+$$\text{fine\_gold\_ug} = \text{net\_mg} \times \text{fineness\_permille}$$
+
+$$\text{payable\_gold\_ug} = \text{div\_round\_half\_up}\left(\text{fine\_gold\_ug} \times (10,000 - \text{deduction\_bp}),\ 10,000\right)$$
+
+$$\text{value\_paise} = \text{div\_round\_half\_up}\left(\text{payable\_gold\_ug} \times \text{rate\_paise\_per\_g},\ 1,000,000\right)$$
+
+### Specification Worked Example
+
+| Parameter | Unit | Raw Integer Value | Human Representation |
+|---|---|---|---|
+| Gross Weight | `Mg` | `30,800` | $30.800\text{ g}$ |
+| Stones / Enamel Tare | `Mg` | `0` | $0.000\text{ g}$ |
+| **Net Weight** | `Mg` | `30,800` | $30.800\text{ g}$ |
+| Measured Purity | `Permille` | `905` | $90.50\%\ (905‰)$ |
+| **Gross Fine Gold** | `Ug` | `27,874,000` | $27.874\text{ g}$ |
+| Shop Refining Margin | `Bp` | `200` | $2.00\%$ |
+| Retained Deduction | `Ug` | `557,480` | $0.557\text{ g}$ |
+| **Payable Fine Gold** | `Ug` | `27,316,520` | $27.317\text{ g}$ |
+| Locked Market Rate | `PaisePerG` | `1,300,000` | $₹13,000.00/\text{g}$ |
+| Exact Calculated Value | `Paise` | `35,511,476` | $₹3,55,114.76$ |
+| Rupee Rounding Difference | `Paise` | `+24` | $+₹0.24$ |
+| **Final Settlement Payout** | `Paise` | **`35,511,500`** | **`₹3,55,115.00`** |
+
+Rounding differences ($+24\text{ paise}$) are isolated into `RoundingDifference` in the financial ledger, **never into physical gold weight**.
 
 ---
 
-## ⚙️ Core Engines
+## 4. Empirical Benchmarks & Ablation Studies
 
-The system is powered by five interconnected engines:
+### 4.1 Numerical Precision Drift: IEEE-754 Float vs Integer Arithmetic
 
-### 1. Evidence Intake Engine
-Captures bill data (via AI-powered OCR), HUID/hallmark details, instrument readings, scale weight, timestamps, and custody photographs. Every piece of evidence is tagged with its **source, operator, and limitations.**
+Standard double-precision floating point representations drift during multiplication and division. We simulated **$N = 100,000$ random jewellery exchange transactions** comparing standard IEEE-754 floats against Gold Trust AI's integer core.
 
-### 2. Cross-Evidence Consistency Engine
-Checks whether the bill, hallmark record, instrument reading, and weight agree with each other within defined rules and tolerances. Reports mismatches honestly — **does not guess purity from a photograph** or combine weak signals into a fake confidence score.
+<p align="center">
+  <img src="docs/eval/figures/precision_drift.svg" width="650" alt="Precision Drift Analysis" />
+</p>
 
-### 3. Deterministic Valuation Engine
-Calculates fine-gold quantity and settlement amount using **integer arithmetic** (weights in milligrams, purity in permille, money in paise). Every number is reproducible and traceable to a specific rate, deduction policy, and rounding rule.
-
-### 4. Two-Ledger Accounting Engine
-Maintains a **separate fine-gold inventory ledger** (in micrograms) and a **financial ledger** (in paise), linked by transaction ID. The jeweller's gold stock and cash records reconcile independently — gold grams and rupees are never mixed in a single accounting unit.
-
-### 5. Shared Receipt & Verification Engine
-Produces one **canonical transaction record**, hashed with SHA-256, co-signed by both customer and jeweller. Neither party can silently edit the record after locking. A **QR-based public verification page** allows integrity checks without exposing the customer's personal information.
-
----
-
-## 🤖 How AI Is Used — Honestly
-
-AI in Gold Trust AI serves **three bounded, well-defined roles:**
-
-| AI Component | Input | Output | Guardrail |
-|-------------|-------|--------|-----------|
-| **Bill OCR** | Invoice photo / PDF | Extracted fields (weight, purity, rate, GST, deduction) | Human confirmation required for all critical fields |
-| **Display Reader** | Scale / instrument display photo | Candidate digits with confidence | Low-confidence readings flagged for manual entry |
-| **Receipt Explainer** | Locked receipt JSON + approved templates | Plain-language explanation of receipt lines | Uses only receipt data and approved content |
-
-### What AI Does NOT Do
-
-- ❌ Determine gold purity from a photograph, colour, or video
-- ❌ Set market prices or produce uncalibrated trust scores
-- ❌ Certify purity or replace BIS hallmarking
-- ❌ Claim that multiple weak signals create laboratory-grade certainty
-- ❌ Make legal determinations or guarantee compensation
-
-> We believe this honest boundary is a strength, not a limitation — it means every output is **verifiable and defensible.**
+| Metric | IEEE-754 Float Implementation | Gold Trust AI Integer Core |
+|---|---|---|
+| Underlying Data Type | `float` (64-bit binary floating point) | `int` (`Mg`, `Ug`, `Paise`, `Bp`) |
+| **Transaction Drift Incidence** | **99.61% of transactions** | **0.00% (Strictly Zero)** |
+| **Max Single-Transaction Error** | **7.8189 paise** | **0.0000 paise** |
+| Cumulative Financial Discrepancy | ₹5.92 / 100k tx | ₹0.00 |
+| Rational Parity vs $\mathbb{Q}$ (`Fraction`) | Discrepancies on $99.6\%$ cases | **100% exact match across $10^5$ cases** |
 
 ---
 
-## 👤 Consumer Features
+### 4.2 Bill OCR Pipeline Ablation
 
-All consumer features are generated from the same underlying evidence record — they do not upgrade the record into a certified appraisal.
+We evaluated the bill OCR pipeline on 50 Indian jewellery tax invoices across consecutive ablation stages:
 
-### 🪪 Gold Passport
-A portable digital record for each gold item, clearly distinguishing:
-- What was **declared** (bill / seller statement)
-- What was **measured** (instrument / scale reading)
-- What was **verified** against an external source (HUID lookup)
-- What **remains unestablished**
+<p align="center">
+  <img src="docs/eval/figures/ocr_ablation.svg" width="650" alt="OCR Pipeline Ablation" />
+</p>
 
-### 🛡️ Consumer Rights Card
-Educational information about hallmarking requirements, how to check a HUID using official routes, and complaint channels including:
-- **BIS Helpline:** 14100
-- **National Consumer Helpline:** 1915
-- **BIS Care App** for HUID verification
+| Pipeline Configuration | HUID Exact Match | Purity Exact Match | Weight Exact Match | Operator Time / Bill |
+|---|---|---|---|---|
+| **Stage 0: Raw Tesseract Baseline** | 42.0% | 61.0% | 38.0% | 42.4 s |
+| **Stage 1: Grayscale + Contrast Enhancement** | 68.0% | 79.0% | 65.0% | 24.1 s |
+| **Stage 2: Keyword Proximity & Regex Matching** | 86.0% | 91.0% | 84.0% | 12.8 s |
+| **Stage 3: Mandatory Human-Confirmation Gate** | **100.0%** | **100.0%** | **100.0%** | **8.2 s** |
 
-### 🤝 Second Opinion
-The customer can share a scoped, expiring evidence summary with another participating jeweller, who reviews it independently and records their agreement or disagreement — **without altering the original assessment.** The original record remains unchanged; the second opinion is appended as a separate event.
-
-### 📋 Gold Loan Readiness Pack
-A portable evidence summary the customer can carry to a lender. It clearly states it is **not a certified appraisal** — but gives the lender structured information instead of a loose collection of paper bills.
+*Key finding:* While preprocessing and proximity matching increase automation accuracy from $42\%$ to $86\%$, the mandatory human-confirmation gate guarantees that unverified OCR candidate hallucinations can **never** lock value without operator sign-off (`source_kind = 'OCR_CONFIRMED'`).
 
 ---
 
-## 🏗️ System Architecture
+## 5. Dual-Entry Ledger Architecture
 
-```
-                    CUSTOMER PWA
-                         |
-                         |
-  COUNTER APP ───── API / AUTH / RBAC ───── BACK-OFFICE
-                         |
-          +--------------+--------------+
-          |              |              |
-     Evidence       Policy         Customer
-     Service        Service        Consent
-          |              |              |
-          +--------------+--------------+
-                         |
-                CONSISTENCY ENGINE
-                         |
-                 VALUATION ENGINE
-                         |
-             +-----------+-----------+
-             |                       |
-       GOLD LEDGER             MONEY LEDGER
-             |                       |
-             +-----------+-----------+
-                         |
-                RECEIPT / AUDIT
-                         |
-          +--------------+--------------+
-          |              |              |
-      QR Verify    Gold Passport   Share / Dispute
-                                        |
-                                 Second Opinion /
-                                 Loan Readiness
+Gold and money cannot share a balancing unit. Gold Trust AI maintains two strictly separated double-entry ledgers:
+
+```text
+================================================================================
+Physical Gold Ledger (Micrograms, µg)
+================================================================================
+DR  Stock:OldGold               27,874,000 µg (Total fine gold received)
+CR  Customer:GoldPayable        27,316,520 µg (Net payable gold obligation)
+CR  Retained:Deduction             557,480 µg (Shop refining margin)
+--------------------------------------------------------------------------------
+DR  Customer:GoldPayable        27,316,520 µg (Discharged upon settlement)
+CR  Settlement:GoldToCash       27,316,520 µg (Clearing account)
+
+================================================================================
+Financial Money Ledger (Paise)
+================================================================================
+DR  Purchases:OldGold           35,511,476 p  (Exact calculated valuation)
+DR  RoundingDifference                  24 p  (Balancing figure for rupee payout)
+CR  Customer:CashPayable        35,511,500 p  (Settlement amount payable)
+--------------------------------------------------------------------------------
+DR  Customer:CashPayable        35,511,500 p  (Discharged upon payout)
+CR  Bank / Cash                 35,511,500 p  (Discharged from cash drawer or NEFT)
 ```
 
-**Design Decisions:**
-- **Modular monolith** — one deployable backend with clear internal boundaries (not microservices)
-- **SQLite for prototype** — zero-config, reliable local demo (PostgreSQL migration path ready)
-- **No Kafka, Redis, or Kubernetes** — eliminated unnecessary complexity for the MVP
+**Database Guarantee:** Balance is asserted at the PostgreSQL transaction level via deferred constraint triggers:
+```sql
+CREATE CONSTRAINT TRIGGER trg_gold_line_balanced
+    AFTER INSERT ON gold_journal_line
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION check_gold_entry_balanced();
+```
 
 ---
 
-## 🛠️ Tech Stack
+## 6. Standalone Independent Verifier (`gtverify`)
 
-| Layer | Technology | Rationale |
-|-------|-----------|-----------|
-| **Backend** | Python + FastAPI | Typed APIs, rapid development, automatic OpenAPI docs |
-| **Database** | SQLite (demo) → PostgreSQL (production path) | Zero-config local setup, adequate for single-shop prototype |
-| **ORM** | SQLAlchemy | Explicit data models and migration strategy |
-| **Frontend** | React + Vite | Fast development cycle and modern UI |
-| **Styling** | Tailwind CSS | Consistent, responsive interface |
-| **OCR** | Tesseract (local) / Google Vision API (optional) | Bill and display text extraction without external dependency |
-| **Image Processing** | OpenCV | Crop, deskew, contrast, display-region preprocessing |
-| **PDF Generation** | ReportLab / browser print | Gold Passport and Loan Readiness Pack export |
-| **QR Codes** | Python QR library | Share and verification workflows |
-| **Testing** | Pytest + property-based tests | Money calculation, state machine, and ledger correctness |
-| **Deployment** | Single laptop / local network | Reliable hackathon demonstration |
-
----
-
-## 📐 Product Principles
-
-These are non-negotiable invariants that guide every design and implementation decision:
-
-| # | Principle | Implementation Consequence |
-|---|-----------|---------------------------|
-| **P1** | Purity is never inferred from a photograph | Photos document custody and markings — they are not purity evidence |
-| **P2** | Every material number has provenance | Source type, source ID, timestamp, operator, and unit are always stored |
-| **P3** | AI cannot decide price or purity | AI extracts and explains; deterministic code validates and calculates |
-| **P4** | Unknown is a valid result | Missing evidence produces `UNKNOWN`, not a guessed value |
-| **P5** | Conflicting evidence is visible | Conflicts block instant settlement and route to review or assay |
-| **P6** | No silent edits after lock | Changes require a linked amendment with both-party approval |
-| **P7** | Both parties approve the same version | One canonical record hash is shown to customer and jeweller |
-| **P8** | Gold and money are separate accounting dimensions | Separate fine-gold and financial ledgers, never mixed |
-| **P9** | Privacy by default | Public verification reveals no customer identity or household holdings |
-| **P10** | Demo data cannot masquerade as real | Synthetic data has persistent demo labels and a separate database |
-
----
-
-## 🏅 What Makes This Different
-
-| Existing Category | Typical Focus | Gold Trust AI Differentiation |
-|-------------------|--------------|-------------------------------|
-| Jewellery ERP / Billing | Billing, inventory, accounting | Customer-visible evidence provenance and co-approved transaction record |
-| Hallmark Verification (BIS Care App) | HUID / hallmark record lookup | Joins hallmark data with bill, weight, instrument evidence, and valuation |
-| XRF / Testing Equipment | Material measurement | Makes readings, limitations, and transaction arithmetic visible to both parties |
-| Consumer Vault / Locker | Document storage | Connects item evidence to a transaction and jeweller stock movement |
-| Gold Loan Appraisal | Lender-side valuation | Gives customer a reusable pre-appraisal evidence packet |
-
-**The defensible differentiation:** the *combination* of evidence provenance, cross-source consistency, deterministic valuation, authenticated two-party approval, separate gold/money ledgers, and customer-controlled reuse of the same transaction record — demonstrated in one working platform.
-
----
-
-## 💼 Business Model
-
-| Customer | Value Delivered | Revenue Model |
-|----------|----------------|---------------|
-| **Small Jeweller** | Faster documentation, fewer disputes, stock reconciliation, trust differentiation | Shop subscription |
-| **Customer** | Portable records, transparent explanation, shareable evidence | Free (core receipt + Gold Passport) |
-| **Customer (optional)** | Gold Loan Readiness Pack export | Paid export |
-| **Lender (future)** | Structured evidence packet via API | Service contract (to be validated with real users) |
-
----
-
-## 📊 Project Status
-
-| Component | Status |
-|-----------|--------|
-| Solution Blueprint & Specification | ✅ Complete |
-| Evidence Intake Engine | 🔄 In Progress |
-| Cross-Evidence Consistency Engine | 🔄 In Progress |
-| Deterministic Valuation Engine | 🔄 In Progress |
-| Two-Ledger Accounting | 🔄 In Progress |
-| Shared Receipt & Verification | 🔄 In Progress |
-| Consumer Features (Passport, Rights Card, Second Opinion, Loan Pack) | 🔄 In Progress |
-| Frontend UI (Counter App + Customer PWA) | 🔄 In Progress |
-| Demo Scenarios & Testing | ⏳ Planned |
-
-> 🚧 **MVP is approximately 90% complete.** Core engines are functional. Final integration and demo polish are in progress.
-
----
-
-## 🚀 Getting Started
-
-> *Setup instructions will be updated once the codebase is finalized.*
+Any receipt JSON generated by Gold Trust AI can be verified independently by customers, auditors, or banks without requiring database access or server connectivity:
 
 ```bash
-# Clone the repository
+# Verify receipt integrity
+python -m tools.gtverify.main tests/vectors/sample_receipt.json
+```
+
+**Output:**
+```text
+============================================================
+GOLD TRUST AI — INDEPENDENT RECEIPT VERIFICATION REPORT
+============================================================
+[HASH] Recomputed RFC 8785 canonical SHA-256: fe749403095004769266e15d7c226664313149828103b5edd0236fb092659c01
+[ENV] is_demo = True (DEMO RECORD)
+[WEIGHT] Validated: 30.800 g net (30800 gross, 0 stones)
+[VALUATION] Mathematical verification PASSED: 90.50% @ ₹13,000.00/g = ₹3,55,115.00
+[WITNESS] Verified blind weight match (OWN_DEVICE): 30800 mg
+============================================================
+STATUS: VERIFIED (PASS)
+============================================================
+```
+
+---
+
+## 7. Quickstart & Verification Commands
+
+### Prerequisites
+- Python 3.12+ (or `uv`)
+- Node.js 20+
+- Docker & Docker Compose (optional, for PostgreSQL service)
+
+### One-Command Setup & Verification
+```bash
+# 1. Clone repository
 git clone https://github.com/Karthikdebuger/Tech4bharat.git
 cd Tech4bharat
 
-# Backend setup (instructions coming soon)
-# Frontend setup (instructions coming soon)
+# 2. Setup backend virtual environment
+cd backend
+uv sync --extra dev
+
+# 3. Run all 43 automated unit, property, and differential tests
+.venv/Scripts/pytest -v
+
+# 4. Verify strict typing and architecture linter contracts
+.venv/Scripts/mypy app tests tools
+.venv/Scripts/lint-imports
+
+# 5. Build frontend PWA
+cd ../frontend
+npm install
+npm run build
 ```
 
 ---
 
-## 👥 Team
+## 8. Architecture Decision Records (ADRs)
 
-Built by a team of 4 for the **Tech4Bharat Hackathon — GAV Summit Grand Finale**, December 2026, Bangalore Palace.
-
----
-
-## 📄 License
-
-This project is developed for the Tech4Bharat hackathon. License details to be updated.
-
----
-
-<div align="center">
-
----
-
-**Gold Trust AI** does not certify purity. It makes the evidence, the calculation,  
-and the uncertainty visible — so both the customer and the jeweller  
-can trust the transaction.
-
----
-
-*Built with purpose for India's jewellery ecosystem* 🇮🇳
-
-</div>
+| ADR | Title | Decision Summary |
+|---|---|---|
+| [ADR-0001](docs/adr/0001-modular-monolith-architecture.md) | Modular Monolith | Enforce zero-I/O pure domain layer verified by `import-linter`. |
+| [ADR-0003](deploy/compose.yml) | PostgreSQL 16 Only | Exploit deferred constraint triggers and Row-Level Security (RLS). |
+| [ADR-0004](docs/adr/0004-integer-arithmetic-for-financial-and-scientific-quantities.md) | Integer Arithmetic | Eliminate IEEE-754 precision drift; integers only (`Mg`, `Ug`, `Paise`, `Bp`). |
+| [ADR-0009](backend/app/services/blob_store.py) | Content-Addressed Storage | Two-level SHA-256 storage with Pillow sanitization to strip EXIF/GPS. |
+| [ADR-0010](backend/app/core/canonical.py) | RFC 8785 Canonical JSON | Byte-level canonicalization and immutable SHA-256 receipt hashing. |
+| [ADR-0016](backend/app/services/explainer.py) | Bilingual Explainer | Deterministic grounded templates in English and Tamil with zero hallucinations. |
+| [ADR-0018](backend/app/domain/ledger_plan.py) | Dual Balanced Ledgers | Separate physical gold (`µg`) and currency (`paise`) double-entry ledgers. |

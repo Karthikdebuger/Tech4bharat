@@ -1,0 +1,28 @@
+[importlinter]
+root_packages =
+    app
+
+[importlinter:contract:domain-isolation]
+name = Domain layer must not depend on outer layers
+type = forbidden
+source_modules =
+    app.domain
+forbidden_modules =
+    app.api
+    app.services
+    app.models
+    app.repos
+    app.worker
+
+[importlinter:contract:core-isolation]
+name = Core layer must not depend on domain or application layers
+type = forbidden
+source_modules =
+    app.core
+forbidden_modules =
+    app.domain
+    app.api
+    app.services
+    app.models
+    app.repos
+    app.worker

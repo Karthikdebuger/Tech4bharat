@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+  </defs>
+  <rect width="700" height="360" rx="16" fill="url(#bg)"/>
+  
+  <text x="32" y="44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="20" font-weight="bold" fill="#f8fafc">
+    Empirical Precision Drift: IEEE-754 Float vs Integer Arithmetic
+  </text>
+  <text x="32" y="68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto" font-size="12" fill="#94a3b8">
+    Simulated over N = 100,000 random jewellery transactions
+  </text>
+
+  <!-- Metric Card 1 -->
+  <rect x="32" y="96" width="196" height="100" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="48" y="126" font-family="sans-serif" font-size="12" font-weight="600" fill="#94a3b8">CUMULATIVE DRIFT</text>
+  <text x="48" y="162" font-family="monospace" font-size="24" font-weight="bold" fill="#ef4444">₹5.92</text>
+  <text x="48" y="182" font-family="sans-serif" font-size="10" fill="#64748b">Cumulative variance across transactions</text>
+
+  <!-- Metric Card 2 -->
+  <rect x="252" y="96" width="196" height="100" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="268" y="126" font-family="sans-serif" font-size="12" font-weight="600" fill="#94a3b8">DRIFT INCIDENCE</text>
+  <text x="268" y="162" font-family="monospace" font-size="24" font-weight="bold" fill="#f59e0b">99.6%</text>
+  <text x="268" y="182" font-family="sans-serif" font-size="10" fill="#64748b">99,615 of 100,000 cases drifted</text>
+
+  <!-- Metric Card 3 -->
+  <rect x="472" y="96" width="196" height="100" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="488" y="126" font-family="sans-serif" font-size="12" font-weight="600" fill="#94a3b8">GOLD TRUST ERROR</text>
+  <text x="488" y="162" font-family="monospace" font-size="24" font-weight="bold" fill="#10b981">0.0000 paise</text>
+  <text x="488" y="182" font-family="sans-serif" font-size="10" fill="#10b981">Exact integer &amp; rational parity</text>
+
+  <!-- Comparison Bars -->
+  <rect x="32" y="220" width="636" height="108" rx="12" fill="#0f172a" stroke="#334155"/>
+  <text x="48" y="248" font-family="sans-serif" font-size="12" font-weight="600" fill="#cbd5e1">Computational Methodology Comparison</text>
+
+  <text x="48" y="278" font-family="sans-serif" font-size="11" fill="#94a3b8">Standard Float Approach:</text>
+  <rect x="220" y="266" width="380" height="14" rx="4" fill="#ef4444" opacity="0.85"/>
+  <text x="610" y="278" font-family="sans-serif" font-size="11" font-weight="bold" fill="#ef4444">Non-Deterministic</text>
+
+  <text x="48" y="306" font-family="sans-serif" font-size="11" fill="#94a3b8">Gold Trust Integer Core:</text>
+  <rect x="220" y="294" width="420" height="14" rx="4" fill="url(#gold)"/>
+  <text x="650" y="306" font-family="sans-serif" font-size="11" font-weight="bold" fill="#f59e0b">Exact</text>
+</svg>

@@ -1,0 +1,43 @@
+{
+  "receipt_version": 1,
+  "is_demo": true,
+  "exchange_id": "ex-sample-worked-example",
+  "shop_id": "shop-madurai-01",
+  "customer_ref": "c_9b7e3f421a8d05c1",
+  "timestamp_utc": "2026-11-20T10:00:00Z",
+  "supersedes_receipt_hash": null,
+  "weight": {
+    "gross_mg": 30800,
+    "stones_mg": 0,
+    "net_mg": 30800,
+    "formatted_net": "30.800 g"
+  },
+  "witness": {
+    "customer_entered_mg": 30800,
+    "mode": "OWN_DEVICE",
+    "matched": true
+  },
+  "purity": {
+    "nominal_permille": 905,
+    "tolerance_permille": 10,
+    "low_permille": 895,
+    "high_permille": 915,
+    "formatted_purity": "90.50% (905‰)"
+  },
+  "valuation": {
+    "rate_paise_per_g": 1300000,
+    "deduction_bp": 200,
+    "fine_gold_ug": 27874000,
+    "payable_gold_ug": 27316520,
+    "retained_gold_ug": 557480,
+    "exact_value_paise": 35511476,
+    "settlement_paise": 35511500,
+    "rounding_difference_paise": 24,
+    "formatted_settlement": "₹3,55,115.00"
+  },
+  "integrity": {
+    "aggregate_outcome": "CONSISTENT",
+    "evidence_coverage": "11/12",
+    "attested_rules": []
+  }
+}
